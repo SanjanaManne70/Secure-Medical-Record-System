@@ -112,45 +112,4 @@ Integrity through authenticated encryption
 
 Future readiness against quantum attacks
 
-📂 Project Structure
-secure_medical_records/
-│
-├── backend/
-│   ├── members/
-│   ├── encryption/
-│   ├── consent/
-│   └── settings.py
-│
-├── frontend/
-│   ├── components/
-│   ├── pages/
-│   └── api/
-│
-├── .env
-├── .gitignore
-└── README.md
-⚙️ Installation & Setup
-1️⃣ Clone Repository
-git clone https://github.com/your-username/secure-medical-records
-cd secure-medical-records
-2️⃣ Backend Setup
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
 
-Create .env file and configure:
-
-SECRET_KEY=your_secret_key
-DB_NAME=your_database
-DB_USER=your_user
-DB_PASSWORD=your_password
-
-Run migrations:
-
-python manage.py migrate
-python manage.py runserver
-3️⃣ Frontend Setup
-cd frontend
-npm install
-npm start
