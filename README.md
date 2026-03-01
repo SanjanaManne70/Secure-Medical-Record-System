@@ -131,7 +131,7 @@ secure_medical_records/
 └── README.md
 ⚙️ Installation & Setup
 1️⃣ Clone Repository
-git clone https://github.com/your-username/secure-medical-records.git
+git clone https://github.com/your-username/secure-medical-records
 cd secure-medical-records
 2️⃣ Backend Setup
 cd backend
