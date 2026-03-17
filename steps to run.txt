@@ -1,0 +1,4 @@
+ cd /mnt/c/Code/secure_medical_records
+ source ~/kyber_project/venv/bin/activate
+ cd backend
+python manage.py runserver
