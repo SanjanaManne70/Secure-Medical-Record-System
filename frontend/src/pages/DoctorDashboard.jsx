@@ -142,8 +142,14 @@ export default function DoctorDashboard() {
                       <button
                         style={styles.primaryBtn}
                         onClick={() =>
-                          navigate(`/doctor/records/${record.record_id}?search=${search}`)
-                        }
+                          navigate(`/doctor/records/${record.record_id}?search=${search}`, {
+                             state: {
+                                filename: record.filename,
+                                patient: record.patient_name,
+                                uploadedAt: record.uploaded_at
+                              }
+                                })
+                              }
                       >
                         View
                       </button>

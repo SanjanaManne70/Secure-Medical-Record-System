@@ -14,4 +14,5 @@ urlpatterns = [
     path("patient/view/<int:record_id>/", PatientViewRecord.as_view()),
     path("rename/<int:record_id>/", RenameRecord.as_view()),
     path("delete/<int:record_id>/", DeleteRecord.as_view()),
+
 ]

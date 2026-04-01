@@ -1,3 +1,5 @@
+from urllib import response
+
 from users.models import Doctor
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +16,7 @@ from records.models import (
 )
 from policy_engine.pdp import is_access_allowed
 import mimetypes
+import time
 
 
 # 🔥 HELPER: GET CLIENT IP
@@ -33,7 +36,7 @@ class ViewMedicalRecord(APIView):
             doctor = request.user.doctor
 
             # 🔐 decrypt
-            plaintext = decrypt_and_load_record(record_id, doctor)
+            plaintext, decrypt_time_ms = decrypt_and_load_record(record_id, doctor)
 
             # 📄 get record info
             record = MedicalRecord.objects.get(id=record_id)
@@ -57,6 +60,7 @@ class ViewMedicalRecord(APIView):
             # 📦 return file
             response = HttpResponse(plaintext, content_type=content_type)
             response["Content-Disposition"] = f'inline; filename="{filename}"'
+            response["X-Decrypt-Time-Ms"] = decrypt_time_ms  # ✅ NEW — expose as header
 
             return response
 
@@ -132,7 +136,7 @@ class UploadMedicalRecord(APIView):
 
         plaintext = file.read()
 
-        record = encrypt_and_store_record(
+        record , encrypt_time_ms= encrypt_and_store_record(
             patient=patient,
             plaintext_data=plaintext,
             category=category,
@@ -142,7 +146,9 @@ class UploadMedicalRecord(APIView):
         return Response({
             "message": "Record uploaded successfully",
             "record_id": record.id,
-            "category": record.category
+            "category": record.category,
+            "encryption_time_ms": encrypt_time_ms,  # ✅ NEW
+
         }, status=201)
 
 
@@ -213,7 +219,7 @@ class PatientViewRecord(APIView):
         try:
             record = MedicalRecord.objects.get(id=record_id, patient=patient)
 
-            plaintext = decrypt_for_patient(record_id, patient)
+            plaintext, decrypt_time_ms = decrypt_for_patient(record_id, patient)
 
             filename = record.original_filename
 
@@ -233,6 +239,7 @@ class PatientViewRecord(APIView):
 
             response = HttpResponse(plaintext, content_type=content_type)
             response["Content-Disposition"] = f'inline; filename="{filename}"'
+            response["X-Decrypt-Time-Ms"] = decrypt_time_ms  # ✅ NEW
 
             return response
 

@@ -22,7 +22,7 @@ export default function UploadMedicalRecord() {
       });
       setMsg("✅ Record uploaded successfully");
       setFile(null);
-    } catch (err) {
+    } catch {
       setMsg("❌ Upload failed");
     }
   };
@@ -32,7 +32,6 @@ export default function UploadMedicalRecord() {
       <div style={styles.card}>
         <h2 style={styles.title}>📤 Upload Medical Record</h2>
 
-        {/* Category */}
         <div style={styles.field}>
           <label style={styles.label}>Category</label>
           <select
@@ -48,29 +47,21 @@ export default function UploadMedicalRecord() {
           </select>
         </div>
 
-        {/* File Upload */}
         <div style={styles.field}>
           <label style={styles.label}>Select File</label>
           <div style={styles.fileBox}>
             <input
               type="file"
               onChange={e => setFile(e.target.files[0])}
-              style={{ cursor: "pointer" }}
             />
           </div>
-          {file && (
-            <p style={styles.fileName}>
-              📄 {file.name}
-            </p>
-          )}
+          {file && <p style={styles.fileName}>📄 {file.name}</p>}
         </div>
 
-        {/* Upload Button */}
         <button onClick={handleUpload} style={styles.button}>
           Upload Securely
         </button>
 
-        {/* Message */}
         {msg && (
           <div
             style={{
@@ -86,8 +77,6 @@ export default function UploadMedicalRecord() {
     </div>
   );
 }
-
-/* ---------------- Styles ---------------- */
 
 const styles = {
   page: {
@@ -112,9 +101,7 @@ const styles = {
     color: "#0a3d91",
     marginBottom: "30px"
   },
-  field: {
-    marginBottom: "20px"
-  },
+  field: { marginBottom: "20px" },
   label: {
     display: "block",
     marginBottom: "8px",
@@ -125,30 +112,21 @@ const styles = {
     width: "100%",
     padding: "10px",
     borderRadius: "6px",
-    border: "1px solid #d6e4ff",
-    backgroundColor: "#f8fbff"
+    border: "1px solid #d6e4ff"
   },
   fileBox: {
     padding: "10px",
     borderRadius: "6px",
-    border: "1px dashed #0a3d91",
-    backgroundColor: "#f0f6ff"
+    border: "1px dashed #0a3d91"
   },
-  fileName: {
-    marginTop: "8px",
-    fontSize: "14px",
-    color: "#0a3d91"
-  },
+  fileName: { marginTop: "8px" },
   button: {
     width: "100%",
     padding: "12px",
     backgroundColor: "#0a3d91",
     color: "white",
     border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontWeight: "600",
-    fontSize: "15px"
+    borderRadius: "6px"
   },
   message: {
     marginTop: "20px",

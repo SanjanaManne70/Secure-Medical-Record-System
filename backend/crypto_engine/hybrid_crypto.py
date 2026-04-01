@@ -2,7 +2,7 @@ import os
 import hashlib
 import oqs
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-
+import time
 KEM_ALGO = "Kyber768"
 
 
@@ -19,6 +19,8 @@ def hybrid_encrypt_for_doctors(plaintext: bytes, doctors):
     Encrypt data ONCE with AES-256-GCM
     Wrap AES key separately for each doctor using Kyber
     """
+    encrypt_start = time.perf_counter()
+
 
     # 1️⃣ Generate AES key
     aes_key = os.urandom(32)
@@ -51,12 +53,16 @@ def hybrid_encrypt_for_doctors(plaintext: bytes, doctors):
             "wrapped_aes_key": wrapped_aes_key,
             "wrap_nonce": wrap_nonce,
         }
+    encrypt_duration = time.perf_counter() - encrypt_start
+
 
     return {
         "encrypted_data": encrypted_data,
         "nonce": nonce,
         "wrapped_keys": wrapped_keys,
         "aes_key": aes_key,  # 👈 return this for patient wrapping
+        "encryption_time_ms": round(encrypt_duration * 1000, 3),  # ✅ NEW
+
     }
 
 
@@ -75,7 +81,7 @@ def hybrid_decrypt_for_doctor(
     """
     Doctor decrypts AES key via Kyber, then decrypts record
     """
-
+    decrypt_start = time.perf_counter()
     # 1️⃣ Kyber decapsulation
     with oqs.KeyEncapsulation(
         KEM_ALGO,
@@ -92,8 +98,9 @@ def hybrid_decrypt_for_doctor(
     # 3️⃣ Decrypt record
     aesgcm = AESGCM(aes_key)
     plaintext = aesgcm.decrypt(nonce, encrypted_data, None)
+    decrypt_duration = time.perf_counter() - decrypt_start
 
-    return plaintext
+    return plaintext,round(decrypt_duration * 1000, 3)  
 def generate_kyber_keypair():
     with oqs.KeyEncapsulation(KEM_ALGO) as kem:
         public_key = kem.generate_keypair()

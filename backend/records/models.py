@@ -82,3 +82,4 @@ class AccessAuditLog(models.Model):
     def __str__(self):
         actor = self.doctor.name if self.doctor else "Patient"
         return f"{actor} → Record {self.record.id} ({self.action})"
+    

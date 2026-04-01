@@ -27,6 +27,8 @@ def encrypt_and_store_record(patient, plaintext_data, category, filename):
 
     # 3️⃣ Encrypt once + wrap per doctor (existing logic)
     enc = hybrid_encrypt_for_doctors(plaintext_data, doctors)
+    encrypt_time_ms = enc["encryption_time_ms"]  # ✅ NEW — read timing
+    print(f"[TIMING] Encryption took: {encrypt_time_ms} ms")  # optional log
 
     encrypted_data = enc["encrypted_data"]
     nonce = enc["nonce"]
@@ -65,4 +67,4 @@ def encrypt_and_store_record(patient, plaintext_data, category, filename):
             wrap_nonce=payload["wrap_nonce"],
         )
 
-    return record
+    return record, encrypt_time_ms
