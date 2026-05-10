@@ -1,118 +1,145 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 export default function MyDoctors() {
+  const navigate = useNavigate();
   const [allDoctors, setAllDoctors] = useState([]);
   const [myDoctors, setMyDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState({ text: "", type: "" });
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get("/api/users/")
-      .then(res => setAllDoctors(res.data))
-      .catch(() => setMessage("Failed to load doctors"));
-  }, []);
+  const showMsg = (text, type = "info") => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+  };
 
   const loadMyDoctors = () => {
     api.get("/api/users/my-doctors/")
-      .then(res => setMyDoctors(res.data))
-      .catch(() => setMessage("Failed to load assigned doctors"));
+      .then((res) => { setMyDoctors(res.data); setLoading(false); })
+      .catch(() => { showMsg("Failed to load your doctors.", "error"); setLoading(false); });
   };
 
   useEffect(() => {
+    api.get("/api/users/").then((res) => setAllDoctors(res.data)).catch(() => showMsg("Failed to load doctors.", "error"));
     loadMyDoctors();
   }, []);
 
   const addDoctor = () => {
     if (!selectedDoctor) return;
-
-    api.post("/api/users/add-doctor/", {
-      doctor_id: selectedDoctor
-    })
-    .then(() => {
-      setMessage("Doctor added successfully");
-      setSelectedDoctor("");
-      loadMyDoctors();
-    })
-    .catch(() => {
-      setMessage("Doctor already added or error");
-    });
+    api.post("/api/users/add-doctor/", { doctor_id: selectedDoctor })
+      .then(() => { showMsg("Doctor added successfully.", "success"); setSelectedDoctor(""); loadMyDoctors(); })
+      .catch(() => showMsg("Doctor is already added or an error occurred.", "error"));
   };
 
   const removeDoctor = (doctorId) => {
-    api.post("/api/users/remove-doctor/", {
-      doctor_id: doctorId
-    })
-    .then(() => {
-      setMessage("Doctor removed successfully");
-      loadMyDoctors();
-    })
-    .catch(() => {
-      setMessage("Failed to remove doctor");
-    });
+    api.post("/api/users/remove-doctor/", { doctor_id: doctorId })
+      .then(() => { showMsg("Doctor access revoked.", "success"); loadMyDoctors(); })
+      .catch(() => showMsg("Failed to remove doctor.", "error"));
   };
 
+  const availableDoctors = allDoctors.filter((d) => !myDoctors.find((m) => m.id === d.id));
+
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
-        <h2 style={styles.title}>👨‍⚕️ My Doctors</h2>
+    <div style={s.page}>
+      {/* Nav */}
+      <nav style={s.nav}>
+        <div style={s.navBrand}>
+          <div style={s.navLogo}>
+            <svg width="20" height="20" viewBox="0 0 36 36" fill="none">
+              <path d="M18 4v28M4 18h28" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+            </svg>
+          </div>
+          <span style={s.navBrandName}>MediVault</span>
+        </div>
+        <button style={s.backBtn} onClick={() => navigate("/patient")}>← Dashboard</button>
+      </nav>
 
-        {message && <div style={styles.message}>{message}</div>}
+      <div style={s.body}>
+        <div style={s.pageHeader}>
+          <h1 style={s.pageTitle}>My Doctors</h1>
+          <p style={s.pageSub}>Manage which doctors can see your medical records</p>
+        </div>
 
-        {/* ================= ADD DOCTOR ================= */}
-        <div style={styles.card}>
-          <h3 style={styles.sectionTitle}>➕ Add Doctor</h3>
+        {message.text && (
+          <div style={{ ...s.msgBox, ...(message.type === "success" ? s.msgSuccess : message.type === "error" ? s.msgError : s.msgInfo) }}>
+            {message.type === "success" ? "✅" : message.type === "error" ? "⚠️" : "ℹ️"} {message.text}
+          </div>
+        )}
 
-          <div style={styles.addRow}>
-            <select
-              style={styles.select}
-              value={selectedDoctor}
-              onChange={e => setSelectedDoctor(e.target.value)}
+        {/* Add Doctor Card */}
+        <div style={s.card}>
+          <div style={s.cardHeader}>
+            <div style={s.cardHeaderIcon}>➕</div>
+            <div>
+              <h3 style={s.cardTitle}>Add a Doctor</h3>
+              <p style={s.cardSub}>Select a registered doctor to grant them access</p>
+            </div>
+          </div>
+          <div style={s.addRow}>
+            <div style={s.selectWrapper}>
+              <span style={s.selectIcon}>👨‍⚕️</span>
+              <select
+                style={s.select}
+                value={selectedDoctor}
+                onChange={(e) => setSelectedDoctor(e.target.value)}
+              >
+                <option value="">Select a doctor…</option>
+                {availableDoctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} {d.department ? `· ${d.department}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              style={{ ...s.addBtn, opacity: !selectedDoctor ? 0.5 : 1 }}
+              disabled={!selectedDoctor}
+              onClick={addDoctor}
             >
-              <option value="">Select Doctor</option>
-              {allDoctors.map(d => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-
-            <button style={styles.primaryBtn} onClick={addDoctor}>
-              Add
+              Add Doctor
             </button>
           </div>
         </div>
 
-        {/* ================= ASSIGNED DOCTORS ================= */}
-        <div style={styles.card}>
-          <h3 style={styles.sectionTitle}>📋 Added Doctors</h3>
+        {/* My Doctors Card */}
+        <div style={s.card}>
+          <div style={s.cardHeader}>
+            <div style={{ ...s.cardHeaderIcon, background: "#ccfbf1", color: "#0d9488" }}>👨‍⚕️</div>
+            <div>
+              <h3 style={s.cardTitle}>Added Doctors</h3>
+              <p style={s.cardSub}>{myDoctors.length} doctor{myDoctors.length !== 1 ? "s" : ""} currently have access</p>
+            </div>
+          </div>
 
-          {myDoctors.length === 0 ? (
-            <p style={{ color: "#6c7a96" }}>No doctors added yet</p>
+          {loading ? (
+            <div style={s.loadingRow}>
+              <div style={s.spinner} /> Loading…
+            </div>
+          ) : myDoctors.length === 0 ? (
+            <div style={s.emptyState}>
+              <span style={s.emptyIcon}>🏥</span>
+              <p style={s.emptyText}>No doctors added yet. Add a doctor above to grant record access.</p>
+            </div>
           ) : (
-            <table style={styles.table}>
-              <thead>
-                <tr style={styles.tableHeader}>
-                  <th style={styles.th}>Doctor Name</th>
-                  <th style={styles.th}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myDoctors.map(d => (
-                  <tr key={d.id}>
-                    <td style={styles.td}>{d.name}</td>
-                    <td style={styles.td}>
-                      <button
-                        style={styles.dangerBtn}
-                        onClick={() => removeDoctor(d.id)}
-                      >
-                        Revoke acess
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={s.doctorList}>
+              {myDoctors.map((d) => (
+                <div key={d.id} style={s.doctorRow}>
+                  <div style={s.docAvatar}>{d.name.charAt(0).toUpperCase()}</div>
+                  <div style={s.docInfo}>
+                    <p style={s.docName}>{d.name}</p>
+                    {d.department && <p style={s.docDept}>{d.department}</p>}
+                  </div>
+                  <div style={s.docBadge}>
+                    <span style={s.accessBadge}>Access Granted</span>
+                  </div>
+                  <button style={s.revokeBtn} onClick={() => removeDoctor(d.id)}>
+                    Revoke Access
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -120,94 +147,173 @@ export default function MyDoctors() {
   );
 }
 
-/* ---------------- Styles ---------------- */
-
-const styles = {
+const s = {
   page: {
     minHeight: "100vh",
-    background: "#f4f7fb",
-    padding: "30px 60px",
-    fontFamily: "Segoe UI, sans-serif"
+    background: "linear-gradient(160deg, #eef4ff 0%, #f0f4f8 60%, #e8f5f3 100%)",
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    color: "#0f172a",
   },
-
-  container: {
-    maxWidth: "1000px"
+  nav: {
+    background: "#fff",
+    borderBottom: "1px solid #e2e8f0",
+    padding: "0 40px",
+    height: "64px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    boxShadow: "0 1px 4px rgba(10,61,145,0.06)",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
   },
-
-  title: {
-    color: "#0a3d91",
-    marginBottom: "25px"
+  navBrand: { display: "flex", alignItems: "center", gap: "10px" },
+  navLogo: {
+    width: "36px",
+    height: "36px",
+    background: "linear-gradient(135deg, #1a56c4, #0a3d91)",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
+  navBrandName: { fontSize: "17px", fontWeight: "700", color: "#0a3d91" },
+  backBtn: { background: "transparent", border: "none", fontSize: "13px", fontWeight: "600", color: "#64748b", cursor: "pointer" },
 
-  message: {
-    background: "#eef3ff",
-    padding: "10px",
-    borderRadius: "6px",
+  body: { padding: "40px 48px", maxWidth: "860px", margin: "0 auto" },
+  pageHeader: { marginBottom: "28px" },
+  pageTitle: { fontSize: "26px", fontWeight: "700", color: "#0a3d91", margin: "0 0 6px" },
+  pageSub: { fontSize: "14px", color: "#64748b", margin: 0 },
+
+  msgBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "13px 16px",
+    borderRadius: "10px",
+    fontSize: "13px",
+    fontWeight: "500",
     marginBottom: "20px",
-    color: "#0a3d91"
+    border: "1px solid",
   },
+  msgSuccess: { background: "#d1fae5", color: "#065f46", borderColor: "#6ee7b7" },
+  msgError: { background: "#fee2e2", color: "#991b1b", borderColor: "#fca5a5" },
+  msgInfo: { background: "#e8f0fe", color: "#1e40af", borderColor: "#c7d7fc" },
 
   card: {
-    background: "white",
-    padding: "20px",
-    borderRadius: "8px",
-    marginBottom: "25px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+    background: "#fff",
+    borderRadius: "20px",
+    border: "1px solid #e2e8f0",
+    padding: "28px 32px",
+    marginBottom: "24px",
+    boxShadow: "0 2px 8px rgba(10,61,145,0.05)",
   },
-
-  sectionTitle: {
-    marginBottom: "15px",
-    color: "#1a2b49"
-  },
-
-  addRow: {
+  cardHeader: { display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px" },
+  cardHeaderIcon: {
+    width: "48px",
+    height: "48px",
+    background: "#e8f0fe",
+    color: "#0a3d91",
+    borderRadius: "14px",
     display: "flex",
-    gap: "15px",
-    alignItems: "center"
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "22px",
+    flexShrink: 0,
   },
+  cardTitle: { fontSize: "17px", fontWeight: "700", color: "#0f172a", margin: "0 0 3px" },
+  cardSub: { fontSize: "13px", color: "#64748b", margin: 0 },
 
+  addRow: { display: "flex", gap: "12px", alignItems: "center" },
+  selectWrapper: { flex: 1, position: "relative", display: "flex", alignItems: "center" },
+  selectIcon: { position: "absolute", left: "12px", fontSize: "16px", pointerEvents: "none", zIndex: 1 },
   select: {
-    padding: "8px",
-    minWidth: "250px",
-    borderRadius: "4px",
-    border: "1px solid #d6e4ff"
-  },
-
-  primaryBtn: {
-    background: "#0a3d91",
-    color: "white",
-    border: "none",
-    padding: "8px 16px",
-    borderRadius: "4px",
-    cursor: "pointer"
-  },
-
-  dangerBtn: {
-    background: "#e53935",
-    color: "white",
-    border: "none",
-    padding: "6px 12px",
-    borderRadius: "4px",
-    cursor: "pointer"
-  },
-
-  table: {
     width: "100%",
-    borderCollapse: "collapse"
+    padding: "11px 14px 11px 38px",
+    borderRadius: "10px",
+    border: "1.5px solid #e2e8f0",
+    fontSize: "14px",
+    color: "#0f172a",
+    background: "#f8fafc",
+    outline: "none",
+    fontFamily: "inherit",
+    appearance: "none",
+    cursor: "pointer",
+  },
+  addBtn: {
+    padding: "11px 24px",
+    background: "linear-gradient(135deg, #1a56c4, #0a3d91)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "10px",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    whiteSpace: "nowrap",
   },
 
-  tableHeader: {
-    background: "#eef3ff"
-  },
+  loadingRow: { display: "flex", alignItems: "center", gap: "10px", color: "#64748b", fontSize: "14px" },
+  spinner: { width: "18px", height: "18px", border: "2px solid #e2e8f0", borderTop: "2px solid #0a3d91", borderRadius: "50%" },
 
-  th: {
-    textAlign: "left",
-    padding: "10px",
-    borderBottom: "1px solid #e3ebf7"
+  emptyState: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "36px",
+    textAlign: "center",
+    background: "#f8fafc",
+    borderRadius: "12px",
   },
+  emptyIcon: { fontSize: "36px", marginBottom: "12px" },
+  emptyText: { fontSize: "14px", color: "#64748b", margin: 0 },
 
-  td: {
-    padding: "10px",
-    borderBottom: "1px solid #f0f3f9"
-  }
+  doctorList: { display: "flex", flexDirection: "column", gap: "12px" },
+  doctorRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    padding: "16px 20px",
+    borderRadius: "12px",
+    border: "1px solid #e2e8f0",
+    background: "#f8fafc",
+  },
+  docAvatar: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "50%",
+    background: "linear-gradient(135deg, #0d9488, #0f766e)",
+    color: "#fff",
+    fontSize: "18px",
+    fontWeight: "700",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  docInfo: { flex: 1 },
+  docName: { fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: "0 0 2px" },
+  docDept: { fontSize: "12px", color: "#64748b", margin: 0 },
+  docBadge: { marginRight: "4px" },
+  accessBadge: {
+    background: "#d1fae5",
+    color: "#065f46",
+    fontSize: "11px",
+    fontWeight: "600",
+    padding: "4px 10px",
+    borderRadius: "9999px",
+    border: "1px solid #6ee7b7",
+  },
+  revokeBtn: {
+    background: "#fff",
+    border: "1px solid #fca5a5",
+    color: "#dc2626",
+    padding: "7px 14px",
+    borderRadius: "8px",
+    fontSize: "12px",
+    fontWeight: "600",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    whiteSpace: "nowrap",
+  },
 };

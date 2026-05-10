@@ -124,7 +124,7 @@ export default function MyRecords() {
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-        <h2 style={styles.title}>📁 My Medical Records</h2>
+        <h2 style={styles.title}>My Medical Records</h2>
 
         {error && <div style={styles.error}>{error}</div>}
 
@@ -190,7 +190,7 @@ export default function MyRecords() {
                             viewRecord(record.id, record.filename)
                           }
                         >
-                          📄 {record.filename}
+                          {record.filename}
                         </span>
                       )}
                     </td>
