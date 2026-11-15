@@ -1,6 +1,15 @@
 #backend/users/urls.py
 from django.urls import path
-from .views import DoctorListView, DoctorRegisterView, MeView, MyDoctorsView, PatientRegisterView, RemoveDoctorView, AddDoctorView
+from .views import (
+    DoctorListView,
+    DoctorRegisterView,
+    MeView,
+    MyDoctorsView,
+    PatientRegisterView,
+    RemoveDoctorView,
+    AddDoctorView,
+    PatientDashboardStatsView
+)
 from .auth_views import DoctorTokenView
 
 urlpatterns = [
@@ -13,4 +22,5 @@ urlpatterns = [
     path('me/', MeView.as_view()),
     path('add-doctor/', AddDoctorView.as_view()),
     path('remove-doctor/', RemoveDoctorView.as_view()),
+    path('dashboard-stats/', PatientDashboardStatsView.as_view()),
 ]

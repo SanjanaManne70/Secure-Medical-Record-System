@@ -9,6 +9,8 @@ from users.models import Doctor,PatientDoctor,Patient
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from crypto_engine.hybrid_crypto import generate_kyber_keypair
+from django.utils import timezone
+from records.models import MedicalRecord
 
 class DoctorRegisterView(APIView):
     permission_classes = [AllowAny]
@@ -156,9 +158,59 @@ class MeView(APIView):
         user = request.user
 
         if hasattr(user, "doctor"):
-            return Response({"role": "doctor"})
+            doctor = user.doctor
+
+            return Response({
+                "role": "doctor",
+                "id": doctor.id,
+                "name": doctor.name,
+                "department": doctor.department
+            })
 
         if hasattr(user, "patient"):
-            return Response({"role": "patient"})
+            patient = user.patient
 
-        return Response({"role": "unknown"})
+            return Response({
+                "role": "patient",
+                "id": patient.id,
+                "name": patient.name
+            })
+
+        return Response({"role": "unknown"}, status=400)
+
+class PatientDashboardStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        if not hasattr(request.user, "patient"):
+            return Response(
+                {"error": "Only patients can access this dashboard"},
+                status=403
+            )
+
+        patient = request.user.patient
+
+        # Total medical records uploaded by this patient
+        records_count = MedicalRecord.objects.filter(
+            patient=patient
+        ).count()
+
+        # Total doctors linked to this patient
+        doctors_count = PatientDoctor.objects.filter(
+            patient=patient
+        ).count()
+
+        # Active and non-expired access grants
+        access_grants_count = DoctorConsent.objects.filter(
+            patient=patient,
+            is_active=True,
+            expires_at__gt=timezone.now()
+        ).count()
+
+        return Response({
+            "patient_name": patient.name,
+            "records_count": records_count,
+            "access_grants_count": access_grants_count,
+            "doctors_count": doctors_count
+        })

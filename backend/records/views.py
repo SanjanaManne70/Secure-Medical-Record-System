@@ -153,38 +153,53 @@ class UploadMedicalRecord(APIView):
 
 
 # 📋 DOCTOR RECORD LIST
+
 class DoctorRecordListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+
+        if not hasattr(request.user, "doctor"):
+            return Response(
+                {"error": "Only doctors can access this endpoint"},
+                status=403
+            )
+
         doctor = request.user.doctor
-        search = request.GET.get("search")
+        search = request.GET.get("search", "").strip()
 
         results = []
 
-        keys = RecordDoctorKey.objects.filter(doctor=doctor)
+        keys = RecordDoctorKey.objects.filter(
+            doctor=doctor
+        ).select_related(
+            "record",
+            "record__patient"
+        )
 
         for k in keys:
+
             record = k.record
             patient = record.patient
 
-            # 🔥 PDP check
+            # Policy and consent verification
             if not is_access_allowed(doctor, patient):
                 continue
 
-            # 🔎 search filter
+            # Search by patient name
             if search and search.lower() not in patient.name.lower():
                 continue
 
             results.append({
                 "record_id": record.id,
+                "patient_id": patient.id,
                 "patient_name": patient.name,
                 "filename": record.original_filename,
+                "category": record.category,
                 "uploaded_at": record.created_at,
             })
 
         return Response(results)
-
 
 # 📋 PATIENT RECORD LIST
 class PatientRecordsView(APIView):

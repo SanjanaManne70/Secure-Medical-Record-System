@@ -1,55 +1,137 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 export default function DoctorDashboard() {
   const navigate = useNavigate();
 
+  const [doctorName, setDoctorName] = useState("Doctor");
   const [records, setRecords] = useState([]);
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
   const [showRecords, setShowRecords] = useState(false);
   const [showPatients, setShowPatients] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
+  // Fetch logged-in doctor's actual profile
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDoctorProfile = async () => {
+      try {
+        const res = await api.get("/api/users/me/");
+
+        if (!isMounted) return;
+
+        if (res.data.role === "doctor") {
+          setDoctorName(res.data.name || "Doctor");
+
+          localStorage.setItem("name", res.data.name || "Doctor");
+        } else {
+          setError("Invalid doctor account.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch doctor profile:", err);
+
+        if (isMounted) {
+          setError("Unable to load doctor profile.");
+        }
+      }
+    };
+
+    fetchDoctorProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Logout
   const handleLogout = () => {
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
+    localStorage.removeItem("role");
+    localStorage.removeItem("name");
+
     navigate("/");
   };
 
+  // Search patient records
   const handleSearch = (e) => {
     if (e.key === "Enter" && search.trim() !== "") {
       setLoading(true);
+      setError("");
+
       api
-        .get(`/api/records/doctor-records/?search=${search}`)
+        .get(
+          `/api/records/doctor-records/?search=${encodeURIComponent(
+            search.trim()
+          )}`
+        )
         .then((res) => {
           setRecords(res.data);
           setShowRecords(true);
           setShowPatients(false);
         })
-        .catch((err) => console.error(err))
+        .catch((err) => {
+          console.error("Search failed:", err);
+          setError("Unable to search patient records.");
+        })
         .finally(() => setLoading(false));
     }
   };
 
+  // Load assigned patients
   const loadPatients = () => {
     setLoading(true);
+    setError("");
+
     api
       .get("/api/records/doctor-records/")
       .then((res) => {
+        // Group records by actual patient ID
         const unique = [
-          ...new Map(res.data.map((item) => [item.patient_id, item])).values(),
+          ...new Map(
+            res.data.map((item) => [item.patient_id, item])
+          ).values(),
         ];
+
         setPatients(unique);
         setShowPatients(true);
         setShowRecords(false);
       })
-      .catch((err) => console.error(err))
+      .catch((err) => {
+        console.error("Failed to load patients:", err);
+        setError("Unable to load assigned patients.");
+      })
       .finally(() => setLoading(false));
   };
 
-  const doctorName = localStorage.getItem("name") || "Doctor";
+  // View records belonging to a particular patient
+  const viewPatientRecords = (patientName) => {
+    setSearch(patientName);
+    setLoading(true);
+    setError("");
+
+    api
+      .get(
+        `/api/records/doctor-records/?search=${encodeURIComponent(
+          patientName
+        )}`
+      )
+      .then((res) => {
+        setRecords(res.data);
+        setShowRecords(true);
+        setShowPatients(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load patient records:", err);
+        setError("Unable to load patient records.");
+      })
+      .finally(() => setLoading(false));
+  };
 
   return (
     <div style={s.page}>
@@ -58,13 +140,21 @@ export default function DoctorDashboard() {
         <div style={s.navBrand}>
           <div style={s.navLogo}>
             <svg width="20" height="20" viewBox="0 0 36 36" fill="none">
-              <path d="M18 4v28M4 18h28" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+              <path
+                d="M18 4v28M4 18h28"
+                stroke="white"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
+
           <span style={s.navBrandName}>MediVault</span>
         </div>
+
         <div style={s.navRight}>
           <span style={s.navBadge}>Doctor Portal</span>
+
           <button onClick={handleLogout} style={s.logoutBtn}>
             Sign Out →
           </button>
@@ -75,20 +165,37 @@ export default function DoctorDashboard() {
         {/* Header */}
         <div style={s.header}>
           <div style={s.headerLeft}>
-            <div style={s.avatarCircle}>{doctorName.charAt(0).toUpperCase()}</div>
+            <div style={s.avatarCircle}>
+              {doctorName.charAt(0).toUpperCase()}
+            </div>
+
             <div>
-              <h1 style={s.title}>Dr.Gayatri Srinivas</h1>
-              <p style={s.subtitle}>Secure Medical Records Access Panel</p>
+              <h1 style={s.title}>
+                Dr. {doctorName}
+              </h1>
+
+              <p style={s.subtitle}>
+                Secure Medical Records Access Panel
+              </p>
             </div>
           </div>
+
           <div style={s.headerStats}>
             <div style={s.miniStat}>
-              <span style={s.miniStatVal}>{patients.length || "—"}</span>
+              <span style={s.miniStatVal}>
+                {patients.length}
+              </span>
+
               <span style={s.miniStatLabel}>Patients</span>
             </div>
+
             <div style={s.statDivider} />
+
             <div style={s.miniStat}>
-              <span style={s.miniStatVal}>{records.length || "—"}</span>
+              <span style={s.miniStatVal}>
+                {records.length}
+              </span>
+
               <span style={s.miniStatLabel}>Records Found</span>
             </div>
           </div>
@@ -97,9 +204,11 @@ export default function DoctorDashboard() {
         {/* Search Panel */}
         <div style={s.card}>
           <p style={s.cardLabel}>Search Patient Records</p>
+
           <div style={s.searchRow}>
             <div style={s.searchBox}>
               <span style={s.searchIcon}>🔍</span>
+
               <input
                 type="text"
                 placeholder="Search patient by name and press Enter…"
@@ -109,15 +218,27 @@ export default function DoctorDashboard() {
                 style={s.searchInput}
               />
             </div>
+
             <button style={s.outlineBtn} onClick={loadPatients}>
               👥 Assigned Patients
             </button>
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div style={s.card}>
+            <p style={{ color: "#dc2626", margin: 0 }}>
+              {error}
+            </p>
+          </div>
+        )}
+
+        {/* Loading */}
         {loading && (
           <div style={s.loadingRow}>
-            <div style={s.spinner} /> Loading…
+            <div style={s.spinner} />
+            Loading…
           </div>
         )}
 
@@ -126,11 +247,16 @@ export default function DoctorDashboard() {
           <div style={s.card}>
             <div style={s.sectionHeader}>
               <span style={s.sectionDot} />
-              <h3 style={s.sectionTitle}>Assigned Patients</h3>
+
+              <h3 style={s.sectionTitle}>
+                Assigned Patients
+              </h3>
             </div>
 
             {patients.length === 0 ? (
-              <p style={s.emptyText}>No assigned patients found.</p>
+              <p style={s.emptyText}>
+                No assigned patients found.
+              </p>
             ) : (
               <table style={s.table}>
                 <thead>
@@ -140,24 +266,22 @@ export default function DoctorDashboard() {
                     <th style={s.th}>Records</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {patients.map((p, i) => (
-                    <tr key={i} style={s.tr}>
+                    <tr key={p.patient_id} style={s.tr}>
                       <td style={s.tdMuted}>{i + 1}</td>
-                      <td style={s.tdBold}>{p.patient_name}</td>
+
+                      <td style={s.tdBold}>
+                        {p.patient_name}
+                      </td>
+
                       <td style={s.td}>
                         <button
                           style={s.miniBtn}
-                          onClick={() => {
-                            setSearch(p.patient_name);
-                            api
-                              .get(`/api/records/doctor-records/?search=${p.patient_name}`)
-                              .then((res) => {
-                                setRecords(res.data);
-                                setShowRecords(true);
-                                setShowPatients(false);
-                              });
-                          }}
+                          onClick={() =>
+                            viewPatientRecords(p.patient_name)
+                          }
                         >
                           View Records
                         </button>
@@ -174,14 +298,22 @@ export default function DoctorDashboard() {
         {showRecords && !loading && (
           <div style={s.card}>
             <div style={s.sectionHeader}>
-              <span style={{ ...s.sectionDot, background: "#0d9488" }} />
+              <span
+                style={{
+                  ...s.sectionDot,
+                  background: "#0d9488",
+                }}
+              />
+
               <h3 style={s.sectionTitle}>
                 Records for "{search}"
               </h3>
             </div>
 
             {records.length === 0 ? (
-              <p style={s.emptyText}>No records found for "{search}".</p>
+              <p style={s.emptyText}>
+                No records found for "{search}".
+              </p>
             ) : (
               <table style={s.table}>
                 <thead>
@@ -193,31 +325,43 @@ export default function DoctorDashboard() {
                     <th style={s.th}>Action</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {records.map((record) => (
                     <tr key={record.record_id} style={s.tr}>
                       <td style={s.tdFile}>
-                        <span style={s.fileIcon}>📄</span> {record.filename}
+                        <span style={s.fileIcon}>📄</span>
+                        {record.filename}
                       </td>
-                      <td style={s.td}>{record.patient_name}</td>
+
+                      <td style={s.td}>
+                        {record.patient_name}
+                      </td>
+
                       <td style={s.td}>
                         <span style={s.categoryBadge}>
                           {record.category || "General"}
                         </span>
                       </td>
+
                       <td style={s.tdMuted}>
-                        {new Date(record.uploaded_at).toLocaleDateString("en-IN", {
+                        {new Date(
+                          record.uploaded_at
+                        ).toLocaleDateString("en-IN", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
                         })}
                       </td>
+
                       <td style={s.td}>
                         <button
                           style={s.viewBtn}
                           onClick={() =>
                             navigate(
-                              `/doctor/records/${record.record_id}?search=${search}`,
+                              `/doctor/records/${record.record_id}?search=${encodeURIComponent(
+                                search
+                              )}`,
                               {
                                 state: {
                                   filename: record.filename,
@@ -264,7 +408,9 @@ const s = {
     top: 0,
     zIndex: 100,
   },
+
   navBrand: { display: "flex", alignItems: "center", gap: "10px" },
+
   navLogo: {
     width: "36px",
     height: "36px",
@@ -274,8 +420,11 @@ const s = {
     alignItems: "center",
     justifyContent: "center",
   },
+
   navBrandName: { fontSize: "17px", fontWeight: "700", color: "#0a3d91" },
+
   navRight: { display: "flex", alignItems: "center", gap: "16px" },
+
   navBadge: {
     background: "#ccfbf1",
     color: "#0f766e",
@@ -285,6 +434,7 @@ const s = {
     borderRadius: "9999px",
     border: "1px solid #99f6e4",
   },
+
   logoutBtn: {
     background: "transparent",
     border: "none",
@@ -302,7 +452,9 @@ const s = {
     justifyContent: "space-between",
     marginBottom: "32px",
   },
+
   headerLeft: { display: "flex", alignItems: "center", gap: "16px" },
+
   avatarCircle: {
     width: "56px",
     height: "56px",
@@ -315,7 +467,9 @@ const s = {
     alignItems: "center",
     justifyContent: "center",
   },
+
   title: { fontSize: "24px", fontWeight: "700", color: "#0a3d91", margin: "0 0 4px" },
+
   subtitle: { fontSize: "14px", color: "#64748b", margin: 0 },
 
   headerStats: {
@@ -328,9 +482,13 @@ const s = {
     gap: "24px",
     boxShadow: "0 2px 8px rgba(10,61,145,0.05)",
   },
+
   miniStat: { display: "flex", flexDirection: "column", alignItems: "center" },
+
   miniStatVal: { fontSize: "22px", fontWeight: "700", color: "#0a3d91" },
+
   miniStatLabel: { fontSize: "11px", color: "#94a3b8", fontWeight: "600", marginTop: "2px" },
+
   statDivider: { width: "1px", height: "36px", background: "#e2e8f0" },
 
   card: {
@@ -341,11 +499,15 @@ const s = {
     marginBottom: "24px",
     boxShadow: "0 2px 8px rgba(10,61,145,0.05)",
   },
-  cardLabel: { fontSize: "13px", fontWeight: "600", color: "#64748b", marginBottom: "14px", margin: "0 0 14px" },
+
+  cardLabel: { fontSize: "13px", fontWeight: "600", color: "#64748b", margin: "0 0 14px" },
 
   searchRow: { display: "flex", gap: "12px", alignItems: "center" },
+
   searchBox: { flex: 1, position: "relative", display: "flex", alignItems: "center" },
+
   searchIcon: { position: "absolute", left: "14px", fontSize: "16px" },
+
   searchInput: {
     width: "100%",
     padding: "12px 14px 12px 42px",
@@ -358,6 +520,7 @@ const s = {
     fontFamily: "inherit",
     boxSizing: "border-box",
   },
+
   outlineBtn: {
     padding: "11px 20px",
     borderRadius: "10px",
@@ -379,6 +542,7 @@ const s = {
     fontSize: "14px",
     padding: "12px 0",
   },
+
   spinner: {
     width: "18px",
     height: "18px",
@@ -389,6 +553,7 @@ const s = {
   },
 
   sectionHeader: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "18px" },
+
   sectionDot: {
     width: "8px",
     height: "8px",
@@ -396,11 +561,15 @@ const s = {
     background: "#0a3d91",
     flexShrink: 0,
   },
+
   sectionTitle: { fontSize: "16px", fontWeight: "700", color: "#0f172a", margin: 0 },
+
   emptyText: { color: "#94a3b8", fontSize: "14px" },
 
   table: { width: "100%", borderCollapse: "collapse" },
+
   theadRow: { background: "#f8fafc", borderBottom: "2px solid #e2e8f0" },
+
   th: {
     padding: "12px 14px",
     textAlign: "left",
@@ -410,11 +579,25 @@ const s = {
     letterSpacing: "0.5px",
     textTransform: "uppercase",
   },
+
   tr: { borderBottom: "1px solid #f1f5f9", transition: "background 0.15s" },
+
   td: { padding: "14px", fontSize: "14px", color: "#0f172a" },
+
   tdMuted: { padding: "14px", fontSize: "13px", color: "#64748b" },
+
   tdBold: { padding: "14px", fontSize: "14px", fontWeight: "600", color: "#0f172a" },
-  tdFile: { padding: "14px", fontSize: "14px", color: "#0a3d91", fontWeight: "500", display: "flex", alignItems: "center", gap: "6px" },
+
+  tdFile: {
+    padding: "14px",
+    fontSize: "14px",
+    color: "#0a3d91",
+    fontWeight: "500",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+
   fileIcon: { fontSize: "16px" },
 
   categoryBadge: {
@@ -438,6 +621,7 @@ const s = {
     cursor: "pointer",
     fontFamily: "inherit",
   },
+
   viewBtn: {
     background: "linear-gradient(135deg, #1a56c4, #0a3d91)",
     color: "#fff",
