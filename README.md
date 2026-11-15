@@ -390,4 +390,4 @@ The project demonstrates practical implementation of:
 
 B.Tech – Computer Science and Engineering
 
-GitHub: YOUR_GITHUB_PROFILE_URL
+GitHub: https://github.com/SanjanaManne70/
