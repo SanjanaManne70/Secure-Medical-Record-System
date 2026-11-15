@@ -1,1 +1,26 @@
-
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="820" viewBox="0 0 1100 820">
+<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0 L0 6 L9 3z" fill="#64748b"/></marker><style>
+.t{font: bold 25px Arial;fill:#0f172a}.b{fill:#f8fafc;stroke:#334155;stroke-width:2}.c{fill:#eff6ff;stroke:#2563eb;stroke-width:2}.s{fill:#f0fdf4;stroke:#16a34a;stroke-width:2}.d{fill:#fff7ed;stroke:#ea580c;stroke-width:2}.tx{font:bold 18px Arial;fill:#0f172a;text-anchor:middle}.ln{stroke:#64748b;stroke-width:2.5;fill:none;marker-end:url(#a)}.lb{font:15px Arial;fill:#334155}
+</style></defs>
+<rect width="1100" height="820" fill="white"/>
+<text x="550" y="42" class="t" text-anchor="middle">MedVault — System Architecture</text>
+<rect x="400" y="75" width="300" height="58" rx="12" class="b"/><text x="550" y="111" class="tx">React Frontend</text>
+<path d="M550 133V175" class="ln"/>
+<rect x="380" y="175" width="340" height="60" rx="12" class="b"/><text x="550" y="212" class="tx">Django REST API</text>
+<path d="M465 235V275H190V315 M550 235V315 M635 235V275H910V315" class="ln"/>
+<rect x="50" y="315" width="280" height="60" rx="12" class="b"/><text x="190" y="352" class="tx">JWT Authentication</text>
+<rect x="410" y="315" width="280" height="60" rx="12" class="b"/><text x="550" y="352" class="tx">Policy Decision Point</text>
+<rect x="770" y="315" width="280" height="60" rx="12" class="s"/><text x="910" y="352" class="tx">MySQL Database</text>
+<path d="M550 375V420" class="ln"/>
+<polygon points="550,420 665,480 550,540 435,480" class="d"/><text x="550" y="486" class="tx">Valid Consent?</text>
+<path d="M435 480H245V585" class="ln"/><text x="320" y="465" class="lb">No</text>
+<rect x="95" y="585" width="300" height="58" rx="12" class="b"/><text x="245" y="621" class="tx">Access Denied</text>
+<path d="M665 480H855V585" class="ln"/><text x="755" y="465" class="lb">Yes</text>
+<rect x="705" y="585" width="300" height="58" rx="12" class="s"/><text x="855" y="621" class="tx">Retrieve Encrypted Record</text>
+<path d="M855 643V675" class="ln"/>
+<rect x="655" y="675" width="400" height="52" rx="12" class="c"/><text x="855" y="708" class="tx">Kyber-768 Decapsulation</text>
+<path d="M855 727V752" class="ln"/>
+<rect x="655" y="752" width="400" height="52" rx="12" class="c"/><text x="855" y="784" class="tx">SHA-256 + AES-256-GCM Decryption</text>
+<path d="M380 205H25V700H95" class="ln"/>
+<rect x="95" y="675" width="300" height="58" rx="12" class="s"/><text x="245" y="711" class="tx">Access Audit Logs</text>
+</svg>
